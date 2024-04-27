@@ -3,15 +3,21 @@ package com.example.myapplication.models;
 import com.google.firebase.Timestamp;
 
 import java.util.List;
+import java.util.UUID;
 
 public class Chatroom {
-    String chatroomId;
+    String chatroomId = UUID.randomUUID().toString();
     List<String> userIds;
     Timestamp lastMessageTimestamp;
     String lastMessageSenderId;
     String lastMessage;
 
-    public  Chatroom() {
+    public Chatroom() {
+    }
+
+    public Chatroom(List<String> userIds) {
+        this.userIds = userIds;
+        this.lastMessageTimestamp = Timestamp.now();
     }
 
     public Chatroom(String chatroomId, List<String> userIds, Timestamp lastMessageTimestamp, String lastMessageSenderId, String lastMessage) {
@@ -19,7 +25,7 @@ public class Chatroom {
         this.userIds = userIds;
         this.lastMessageTimestamp = lastMessageTimestamp;
         this.lastMessageSenderId = lastMessageSenderId;
-        this.lastMessage =lastMessage;
+        this.lastMessage = lastMessage;
     }
 
     public String getChatroomId() {
