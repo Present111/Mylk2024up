@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="20dp"
+    android:background="@color/black">
+
+    <TextView
+        android:id="@+id/tv_avatar"
+        android:gravity="center"
+        android:text="MN"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:background="@drawable/circle_tv_bg"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:ellipsize="marquee"
+        android:layout_marginHorizontal="12dp"/>
+
+    <TextView
+        android:id="@+id/tv_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="Nguyễn Tuấn Anh"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:maxLines="2"/>
+
+    <ImageButton
+        android:id="@+id/btn_denied"
+        android:src="@drawable/baseline_close_24"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/circle_tv_bg"/>
+</LinearLayout>
