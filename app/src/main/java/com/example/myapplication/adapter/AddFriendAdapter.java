@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -29,7 +30,7 @@ public class AddFriendAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         return list;
     }
 
-    public AddFriendAdapter(Boolean isFriend,AddFriend addFriend) {
+    public AddFriendAdapter(Boolean isFriend, AddFriend addFriend) {
         this.isFriend = isFriend;
         this.addFriend = addFriend;
     }
@@ -51,15 +52,10 @@ public class AddFriendAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     @SuppressLint("NotifyDataSetChanged")
-    public void removeItem(String userId) {
-        for (int i = 0; i < list.size(); i++) {
-            if (Objects.equals(list.get(i).getUserId(), userId)) {
-                list.remove(i);
-                notifyItemRemoved(i);
-                notifyDataSetChanged();
-                break;
-            }
-        }
+    public void removeItemAt(int position) {
+        list.remove(position);
+        notifyItemRemoved(position);
+        notifyDataSetChanged();
     }
 
     @Override
@@ -86,10 +82,12 @@ public class AddFriendAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             if (holder instanceof AddFriendViewHolder) {
                 ((AddFriendViewHolder) holder).tvAvatar.setText(Convert.convertName(user.getUsername()));
                 ((AddFriendViewHolder) holder).tvName.setText(user.getUsername());
-                ((AddFriendViewHolder) holder).btnAdd.setOnClickListener(v -> addFriend.onAddFriend(user.getUserId(), user.getUsername()));
+                ((AddFriendViewHolder) holder).tvPhone.setText(user.getPhone());
+                ((AddFriendViewHolder) holder).btnAdd.setOnClickListener(v -> addFriend.onAddFriend(user.getUserId(), user.getUsername(), position));
             } else if (holder instanceof FriendViewHolder) {
                 ((FriendViewHolder) holder).tvAvatar.setText(Convert.convertName(user.getUsername()));
                 ((FriendViewHolder) holder).tvName.setText(user.getUsername());
+                ((FriendViewHolder) holder).btnUnFiend.setOnClickListener(v -> addFriend.unFriend(user.getUserId(), position));
                 ((FriendViewHolder) holder).itemView.setOnClickListener(v -> addFriend.onClick(user));
             }
         }
@@ -102,7 +100,7 @@ public class AddFriendAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     public class AddFriendViewHolder extends RecyclerView.ViewHolder {
-        private TextView tvAvatar, tvName;
+        private TextView tvAvatar, tvName, tvPhone;
         private Button btnAdd;
 
         public AddFriendViewHolder(@NonNull View itemView) {
@@ -110,17 +108,20 @@ public class AddFriendAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             tvAvatar = itemView.findViewById(R.id.tv_avatar);
             tvName = itemView.findViewById(R.id.tv_name);
             btnAdd = itemView.findViewById(R.id.btn_add);
+            tvPhone = itemView.findViewById(R.id.tv_phone);
         }
     }
 
 
     public class FriendViewHolder extends RecyclerView.ViewHolder {
         private TextView tvAvatar, tvName;
+        private ImageButton btnUnFiend;
 
         public FriendViewHolder(@NonNull View itemView) {
             super(itemView);
             tvAvatar = itemView.findViewById(R.id.tv_avatar);
             tvName = itemView.findViewById(R.id.tv_name);
+            btnUnFiend = itemView.findViewById(R.id.btn_un_friend);
         }
     }
 }

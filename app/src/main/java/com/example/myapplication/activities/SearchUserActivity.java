@@ -3,14 +3,15 @@ package com.example.myapplication.activities;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -19,7 +20,6 @@ import com.example.myapplication.adapter.AddFriendAdapter;
 import com.example.myapplication.adapter.FriendRequestAdapter;
 import com.example.myapplication.interfaces.AddFriend;
 import com.example.myapplication.interfaces.ConfirmFriendRequest;
-import com.example.myapplication.models.Chatroom;
 import com.example.myapplication.models.FriendRequest;
 import com.example.myapplication.models.User;
 import com.example.myapplication.utils.FirebaseUtils;
@@ -27,7 +27,6 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class SearchUserActivity extends AppCompatActivity implements ConfirmFriendRequest, AddFriend {
@@ -38,6 +37,8 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
     private FriendRequestAdapter reciveAdapter, sendAdapter;
     private AddFriendAdapter addFriendAdapter, friendAdapter;
     private String searchTerm = "";
+
+    private Thread threadFilter;
 
 
     @Override
@@ -91,17 +92,23 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                searchTerm = searchInput.getText().toString().trim();
-                if (searchTerm.isEmpty()) {
+                if (threadFilter != null) {
+                    if (threadFilter.isAlive()) threadFilter.interrupt();
+                    threadFilter = null;
+                }
+                if (TextUtils.isEmpty(s)) {
                     recyclerView.setVisibility(View.GONE);
                     rcvUser.setVisibility(View.VISIBLE);
+                    return;
                 }
+                recyclerView.setVisibility(View.VISIBLE);
+                rcvUser.setVisibility(View.GONE);
+                searchTerm = s.toString().trim();
                 getFilter();
             }
 
             @Override
             public void afterTextChanged(Editable s) {
-
             }
         });
     }
@@ -124,27 +131,36 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
 
 
     private void getFilter() {
-        if (searchTerm.trim().isEmpty()) return;
-        FirebaseUtils.allUserCollectionReference()
-                .whereNotEqualTo("userId", FirebaseUtils.currentUserID())
-                .whereGreaterThanOrEqualTo("username", searchTerm.trim())
-                .whereLessThanOrEqualTo("username", searchTerm.trim() + "\uf8ff")
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        List<User> list = task.getResult().toObjects(User.class);
-                        List<User> list1 = sendAdapter.filterList(list);
-                        List<User> list2 = reciveAdapter.filterList(list1);
-                        List<User> list3 = filterFriends(list2);
-                        addFriendAdapter.setData(list3);
-                        recyclerView.setVisibility(View.VISIBLE);
-                        rcvUser.setVisibility(View.GONE);
-                    } else {
-                        if (task.getException() != null) {
-                            task.getException().printStackTrace();
-                        }
-                    }
-                });
+        threadFilter = new Thread(() -> {
+            try {
+                Thread.sleep(100L);
+                FirebaseUtils.allUserCollectionReference()
+                        .whereNotEqualTo("userId", FirebaseUtils.currentUserID())
+                        .whereGreaterThanOrEqualTo("username", searchTerm.trim())
+                        .whereLessThanOrEqualTo("username", searchTerm.trim() + "\uf8ff")
+                        .get()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                if (searchTerm.trim().isEmpty()) return;
+                                List<User> list = task.getResult().toObjects(User.class);
+                                List<User> list1 = sendAdapter.filterList(list);
+                                List<User> list2 = reciveAdapter.filterList(list1);
+                                List<User> list3 = filterFriends(list2);
+                                runOnUiThread(()->{
+                                    addFriendAdapter.setData(list3);
+                                });
+                            } else {
+                                if (task.getException() != null) {
+                                    task.getException().printStackTrace();
+                                }
+                            }
+                        });
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        });
+        threadFilter.start();
     }
 
 
@@ -233,8 +249,8 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
 
 
     @Override
-    public void onAddFriend(String userId, String username) {
-        sendRequest(userId, username);
+    public void onAddFriend(String userId, String username, int position) {
+        sendRequest(userId, username, position);
     }
 
     @Override
@@ -246,13 +262,37 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
         startActivity(intent);
     }
 
-    private void sendRequest(String userId, String username) {
+    @Override
+    public void unFriend(String userId, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Xóa bạn bè");
+        builder.setMessage("Xác nhận xóa bạn bè");
+        builder.setNegativeButton("Hủy", null);
+        builder.setPositiveButton("Xác nhận", (dialog, which) -> {
+            friendAdapter.removeItemAt(position);
+            FirebaseUtils.currentUserDetail().update("friends", FieldValue.arrayRemove(userId));
+            FirebaseUtils.allUserCollectionReference().document(userId).update("friends", FieldValue.arrayRemove(FirebaseUtils.currentUserID()));
+            List<String> userIds = new ArrayList<>();
+            userIds.add(FirebaseUtils.currentUserID());
+            userIds.add(userId);
+            FirebaseUtils.allChatroomCollectionReference()
+                    .whereEqualTo("userIds", userIds)
+                    .get().addOnSuccessListener(queryDocumentSnapshots -> {
+                        queryDocumentSnapshots.getDocuments().forEach(documentSnapshot -> {
+                            documentSnapshot.getReference().delete();
+                        });
+                    });
+        });
+        builder.create().show();
+    }
+
+    private void sendRequest(String userId, String username, int position) {
         FirebaseUtils.currentUserDetail().get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
                 User user = task.getResult().toObject(User.class);
                 FriendRequest friendRequest = new FriendRequest(userId, username, user.getUsername());
                 sendAdapter.addItem(friendRequest);
-                addFriendAdapter.removeItem(userId);
+                addFriendAdapter.removeItemAt(position);
                 FirebaseUtils.InviteReference().document(friendRequest.getId()).set(friendRequest);
             } else {
                 if (task.getException() != null) {

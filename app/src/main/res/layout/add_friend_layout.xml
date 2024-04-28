@@ -19,15 +19,30 @@
         android:ellipsize="marquee"
         android:layout_marginHorizontal="12dp"/>
 
-    <TextView
-        android:id="@+id/tv_name"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="Nguyễn Tuấn Anh"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        android:maxLines="2"/>
+        android:orientation="vertical"
+        >
+        <TextView
+            android:id="@+id/tv_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nguyễn Tuấn Anh"
+            android:textColor="@color/white"
+            android:textSize="18sp"
+            android:maxLines="1"/>
+        <TextView
+            android:id="@+id/tv_phone"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="+840123654789"
+            android:textColor="@color/st_setting_color"
+            android:textSize="18sp"
+            android:maxLines="1"/>
+    </LinearLayout>
+
 
     <androidx.appcompat.widget.AppCompatButton
         android:id="@+id/btn_add"
