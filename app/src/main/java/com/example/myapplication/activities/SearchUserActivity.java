@@ -146,7 +146,7 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
                                 List<User> list1 = sendAdapter.filterList(list);
                                 List<User> list2 = reciveAdapter.filterList(list1);
                                 List<User> list3 = filterFriends(list2);
-                                runOnUiThread(()->{
+                                runOnUiThread(() -> {
                                     addFriendAdapter.setData(list3);
                                 });
                             } else {
@@ -213,6 +213,31 @@ public class SearchUserActivity extends AppCompatActivity implements ConfirmFrie
 
     @Override
     public void onConfirmFriendRequest(String requsetId, String senderId, String receiveId, String senderName) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Xác nhận kết bạn với " + senderName + "?");
+        builder.setMessage("Chọn đồng ý để thêm bạn");
+        builder.setNegativeButton("Từ chối", (dialog, which) ->{
+            reciveAdapter.removeItem(requsetId);
+            FirebaseUtils.InviteReference().document(requsetId).delete();
+            FirebaseUtils.InviteReference()
+                    .whereEqualTo("senderId", receiveId)
+                    .whereEqualTo("receiverId", senderId)
+                    .get()
+                    .addOnSuccessListener(
+                            queryDocumentSnapshots -> {
+                                if (!queryDocumentSnapshots.isEmpty()) {
+                                    for (QueryDocumentSnapshot documentSnapshot : queryDocumentSnapshots) {
+                                        documentSnapshot.getReference().delete();
+                                    }
+                                }
+                            }
+                    );
+        } );
+        builder.setPositiveButton("Đồng ý", (dialog, which) -> accept(requsetId, senderId, receiveId, senderName));
+        builder.create().show();
+    }
+
+    private void accept(String requsetId, String senderId, String receiveId, String senderName) {
         reciveAdapter.removeItem(requsetId);
         FirebaseUtils.allUserCollectionReference().document(senderId).get().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
